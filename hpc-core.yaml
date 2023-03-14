@@ -1,0 +1,308 @@
+heat_template_version: 2021-04-16
+parameters:
+  clustername:
+    type: string
+    label: Cluster Name
+    description: The name to give the cluster
+
+  external-network:
+    type: string
+    label: External Network Name
+    description: The name of the external network to bridge network to
+
+  network-cidr-pri:
+    type: string
+    label: Primary Nework CIDR
+    description: Network CIDR to be used for primary network
+
+  network-mgt-create:
+    type: boolean
+    label: Create Management Network?
+    description: Decide whether a management network should be created
+
+  network-cidr-mgt: 
+    type: string
+    label: Management Network CIDR
+    description: Network CIDR to be used for management network
+
+  ssh-key:
+    type: string
+    label: SSH Key for Access
+
+  solo-image:
+    type: string
+    label: Flight Solo Image ID
+
+  gateway-pri-ip:
+    type: string
+    label: Gateway Primary IP Address
+
+  gateway-mgt-ip:
+    type: string
+    label: Gateway Management IP Address
+
+  gateway-flavour:
+    type: string
+    label: Gateway node flavour
+
+  infra01-create:
+    type: boolean
+    label: Create Infra01 Node?
+
+  infra01-pri-ip:
+    type: string
+    label: Infra01 Primary IP Address
+
+  infra01-mgt-ip:
+    type: string
+    label: Infra01 Management IP Address
+
+  infra01-flavour:
+    type: string
+    label: Infra01 node flavour
+
+conditions:
+  create_mgt_network:
+    get_param: network-mgt-create
+  create_infra01:
+    get_param: infra01-create
+resources:
+  external-route:
+    type: OS::Neutron::Router
+    depends_on: cluster-network-pri
+    properties:
+      name: { list_join: ['-', [ {get_param: clustername}, 'ext-route']] }
+      external_gateway_info:
+        network: { get_param: external-network }
+
+  external-route-iface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router: { get_resource: external-route }
+      subnet: { get_resource: cluster-network-pri }
+
+  cluster-network:
+    type: OS::Neutron::Net
+    properties:
+      name: { list_join: ['-', [{ get_param: clustername }, 'network']] }
+      dns_domain: { list_join: ['.', [{ get_param: clustername }, 'alces.network.']] }
+
+  cluster-network-pri:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { list_join: ['-', [ {get_param: clustername}, 'network-pri']] }
+      network: { get_resource: cluster-network }
+      cidr: { get_param: network-cidr-pri }
+      ip_version: 4
+
+  cluster-network-mgt:
+    type: OS::Neutron::Subnet
+    depends_on: cluster-network-pri
+    condition: create_mgt_network
+    properties:
+      name: { list_join: ['-', [ {get_param: clustername}, 'network-mgt']] }
+      network: { get_resource: cluster-network }
+      cidr: { get_param: network-cidr-mgt }
+      ip_version: 4
+
+  cluster-sg:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: { list_join: ['-', [ {get_param: clustername}, 'network-pri-sg']] }
+      rules:
+        - direction: egress
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          remote_ip_prefix: { get_param: network-cidr-pri }
+        - direction: ingress
+          protocol: icmp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          port_range_min: 22
+          port_range_max: 22
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          port_range_min: 80
+          port_range_max: 80
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          port_range_min: 443
+          port_range_max: 443
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          port_range_min: 5901
+          port_range_max: 5911
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          port_range_min: 8888
+          port_range_max: 8888
+          protocol: tcp
+          remote_ip_prefix: 0.0.0.0/0
+        - direction: ingress
+          port_range_min: 8888
+          port_range_max: 8888
+          protocol: udp
+          remote_ip_prefix: 0.0.0.0/0
+
+  cluster-sg-mgt: 
+    type: OS::Neutron::SecurityGroupRule
+    condition: create_mgt_network
+    properties:
+      direction: ingress
+      protocol: 0 # https://docs.openstack.org/api-ref/network/v2/?expanded=create-security-group-rule-detail#security-group-rules-security-group-rules
+      remote_ip_prefix: { get_param: network-cidr-mgt }
+      security_group: { get_resource: cluster-sg }
+
+  gateway-pri-port:
+    type: OS::Neutron::Port
+    depends_on: cluster-network-pri
+    properties:
+      name: { list_join: ['-', ['gateway1', 'pri', { get_param: clustername }]] }
+      network: { get_resource: cluster-network }
+      security_groups:
+        - { get_resource: cluster-sg }
+      fixed_ips:
+        - subnet: { get_resource: cluster-network-pri }
+          ip_address: { get_param: gateway-pri-ip }
+
+  gateway-mgt-port:
+    type: OS::Neutron::Port
+    depends_on: cluster-network-mgt
+    condition: create_mgt_network
+    properties:
+      name: { list_join: ['-', ['gateway1', 'mgt', { get_param: clustername }]] }
+      network: { get_resource: cluster-network }
+      security_groups:
+        - { get_resource: cluster-sg }
+      fixed_ips:
+        - subnet: { get_resource: cluster-network-mgt }
+          ip_address: { get_param: gateway-mgt-ip }
+
+  gateway-node:
+    type: OS::Nova::Server
+    properties:
+      name: { list_join: ['.', ['gateway1', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: gateway-flavour } 
+      image: { get_param: solo-image }
+      admin_user: flight
+      networks:
+        if: 
+          - "create_mgt_network"
+          - [ port: { get_resource: gateway-pri-port }, port: { get_resource: gateway-mgt-port } ]
+          - [ port: { get_resource: gateway-pri-port } ]
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+          params:
+            $key: { get_param: ssh-key }
+
+  gateway-vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 16
+
+  gateway-volattach:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: gateway-vol }
+      instance_uuid: { get_resource: gateway-node }
+
+  gateway-ip:
+     type: "OS::Neutron::FloatingIP"
+     properties:
+        floating_network_id: {get_param: external-network}
+        port_id: {get_resource: gateway-pri-port}
+
+  infra01-pri-port:
+    type: OS::Neutron::Port
+    depends_on: cluster-network-pri
+    condition: create_infra01
+    properties:
+      name: { list_join: ['-', ['infra01', 'pri', { get_param: clustername }]] }
+      network: { get_resource: cluster-network }
+      security_groups:
+        - { get_resource: cluster-sg }
+      fixed_ips:
+        - subnet: { get_resource: cluster-network-pri }
+          ip_address: { get_param: infra01-pri-ip }
+
+  infra01-mgt-port:
+    type: OS::Neutron::Port
+    depends_on: cluster-network-mgt
+    condition:
+      and:
+        - create_infra01
+        - create_mgt_network
+    properties:
+      name: { list_join: ['-', ['infra01', 'mgt', { get_param: clustername }]] }
+      network: { get_resource: cluster-network }
+      security_groups:
+        - { get_resource: cluster-sg }
+      fixed_ips:
+        - subnet: { get_resource: cluster-network-mgt }
+          ip_address: { get_param: infra01-mgt-ip }
+
+  infra01-node:
+    type: OS::Nova::Server
+    depends_on: gateway-node
+    condition: create_infra01
+    properties:
+      name: { list_join: ['.', ['infra01', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: infra01-flavour } 
+      image: { get_param: solo-image }
+      admin_user: flight
+      networks:
+        if: 
+          - "create_mgt_network"
+          - [ port: { get_resource: infra01-pri-port }, port: { get_resource: infra01-mgt-port } ]
+          - [ port: { get_resource: infra01-pri-port } ]
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+
+  infra01-vol:
+    type: OS::Cinder::Volume
+    condition: create_infra01
+    properties:
+      size: 16
+
+  infra01-volattach:
+    type: OS::Cinder::VolumeAttachment
+    condition: create_infra01
+    properties:
+      volume_id: { get_resource: infra01-vol }
+      instance_uuid: { get_resource: infra01-node }
+
+outputs:
+  gateway_ext_ip:
+    description: Gateway External IP
+    value:  { get_attr: [gateway-ip, floating_ip_address] }
