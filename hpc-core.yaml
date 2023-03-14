@@ -144,6 +144,7 @@ resources:
         str_replace:
           template: |
             #cloud-config
+            fqdn: gateway1.$clustername.alces.network
             users:
               - default
               - name: flight
@@ -152,6 +153,7 @@ resources:
                   - $key
           params:
             $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
 
   gateway-vol:
     type: OS::Cinder::Volume
@@ -199,6 +201,7 @@ resources:
         str_replace:
           template: |
             #cloud-config
+            fqdn: infra01.$clustername.alces.network
             users:
               - default
               - name: flight
@@ -213,6 +216,7 @@ resources:
                 owner: root:root
           params:
             $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
             $gateway-pri-ip: { get_param: gateway-pri-ip }
 
   infra01-vol:
