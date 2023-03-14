@@ -15,16 +15,6 @@ parameters:
     label: Primary Nework CIDR
     description: Network CIDR to be used for primary network
 
-  network-mgt-create:
-    type: boolean
-    label: Create Management Network?
-    description: Decide whether a management network should be created
-
-  network-cidr-mgt: 
-    type: string
-    label: Management Network CIDR
-    description: Network CIDR to be used for management network
-
   ssh-key:
     type: string
     label: SSH Key for Access
@@ -36,10 +26,6 @@ parameters:
   gateway-pri-ip:
     type: string
     label: Gateway Primary IP Address
-
-  gateway-mgt-ip:
-    type: string
-    label: Gateway Management IP Address
 
   gateway-flavour:
     type: string
@@ -53,17 +39,11 @@ parameters:
     type: string
     label: Infra01 Primary IP Address
 
-  infra01-mgt-ip:
-    type: string
-    label: Infra01 Management IP Address
-
   infra01-flavour:
     type: string
     label: Infra01 node flavour
 
 conditions:
-  create_mgt_network:
-    get_param: network-mgt-create
   create_infra01:
     get_param: infra01-create
 resources:
@@ -93,16 +73,6 @@ resources:
       name: { list_join: ['-', [ {get_param: clustername}, 'network-pri']] }
       network: { get_resource: cluster-network }
       cidr: { get_param: network-cidr-pri }
-      ip_version: 4
-
-  cluster-network-mgt:
-    type: OS::Neutron::Subnet
-    depends_on: cluster-network-pri
-    condition: create_mgt_network
-    properties:
-      name: { list_join: ['-', [ {get_param: clustername}, 'network-mgt']] }
-      network: { get_resource: cluster-network }
-      cidr: { get_param: network-cidr-mgt }
       ip_version: 4
 
   cluster-sg:
@@ -148,15 +118,6 @@ resources:
           protocol: udp
           remote_ip_prefix: 0.0.0.0/0
 
-  cluster-sg-mgt: 
-    type: OS::Neutron::SecurityGroupRule
-    condition: create_mgt_network
-    properties:
-      direction: ingress
-      protocol: 0 # https://docs.openstack.org/api-ref/network/v2/?expanded=create-security-group-rule-detail#security-group-rules-security-group-rules
-      remote_ip_prefix: { get_param: network-cidr-mgt }
-      security_group: { get_resource: cluster-sg }
-
   gateway-pri-port:
     type: OS::Neutron::Port
     depends_on: cluster-network-pri
@@ -169,19 +130,6 @@ resources:
         - subnet: { get_resource: cluster-network-pri }
           ip_address: { get_param: gateway-pri-ip }
 
-  gateway-mgt-port:
-    type: OS::Neutron::Port
-    depends_on: cluster-network-mgt
-    condition: create_mgt_network
-    properties:
-      name: { list_join: ['-', ['gateway1', 'mgt', { get_param: clustername }]] }
-      network: { get_resource: cluster-network }
-      security_groups:
-        - { get_resource: cluster-sg }
-      fixed_ips:
-        - subnet: { get_resource: cluster-network-mgt }
-          ip_address: { get_param: gateway-mgt-ip }
-
   gateway-node:
     type: OS::Nova::Server
     properties:
@@ -190,10 +138,7 @@ resources:
       image: { get_param: solo-image }
       admin_user: flight
       networks:
-        if: 
-          - "create_mgt_network"
-          - [ port: { get_resource: gateway-pri-port }, port: { get_resource: gateway-mgt-port } ]
-          - [ port: { get_resource: gateway-pri-port } ]
+          - port: { get_resource: gateway-pri-port } 
       user_data_format: RAW
       user_data:
         str_replace:
@@ -238,22 +183,6 @@ resources:
         - subnet: { get_resource: cluster-network-pri }
           ip_address: { get_param: infra01-pri-ip }
 
-  infra01-mgt-port:
-    type: OS::Neutron::Port
-    depends_on: cluster-network-mgt
-    condition:
-      and:
-        - create_infra01
-        - create_mgt_network
-    properties:
-      name: { list_join: ['-', ['infra01', 'mgt', { get_param: clustername }]] }
-      network: { get_resource: cluster-network }
-      security_groups:
-        - { get_resource: cluster-sg }
-      fixed_ips:
-        - subnet: { get_resource: cluster-network-mgt }
-          ip_address: { get_param: infra01-mgt-ip }
-
   infra01-node:
     type: OS::Nova::Server
     depends_on: gateway-node
@@ -264,10 +193,7 @@ resources:
       image: { get_param: solo-image }
       admin_user: flight
       networks:
-        if: 
-          - "create_mgt_network"
-          - [ port: { get_resource: infra01-pri-port }, port: { get_resource: infra01-mgt-port } ]
-          - [ port: { get_resource: infra01-pri-port } ]
+          - port: { get_resource: infra01-pri-port }
       user_data_format: RAW
       user_data:
         str_replace:

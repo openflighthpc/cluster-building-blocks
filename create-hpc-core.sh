@@ -21,13 +21,9 @@ openstack stack create -t $DIR/hpc-core.yaml \
     --parameter ssh-key="$SSH_KEY" \
     --parameter solo-image="$SOLO_IMAGE" \
     --parameter network-cidr-pri="$NETWORK_PRI_CIDR" \
-    --parameter network-mgt-create="$NETWORK_MGT_CREATE" \
-    --parameter network-cidr-mgt="$NETWORK_MGT_CIDR" \
     --parameter gateway-pri-ip="$SERVER_GATEWAY_PRI_IP" \
-    --parameter gateway-mgt-ip="$SERVER_GATEWAY_MGT_IP" \
     --parameter gateway-flavour="$SERVER_GATEWAY_FLAVOUR" \
     --parameter infra01-create="$SERVER_INFRA01_CREATE" \
     --parameter infra01-pri-ip="$SERVER_INFRA01_PRI_IP" \
-    --parameter infra01-mgt-ip="$SERVER_INFRA01_MGT_IP" \
     --parameter infra01-flavour="$SERVER_INFRA01_FLAVOUR" \
     "$CLUSTERNAME-hpc-core" --wait
