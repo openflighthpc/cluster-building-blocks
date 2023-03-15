@@ -43,9 +43,41 @@ parameters:
     type: string
     label: Infra01 node flavour
 
+  infra02-create:
+    type: boolean
+    label: Create Infra02 Node?
+
+  infra02-pri-ip:
+    type: string
+    label: Infra02 Primary IP Address
+
+  infra02-flavour:
+    type: string
+    label: Infra02 node flavour
+
+  storage1-create:
+    type: boolean
+    label: Create Storage1 Node?
+
+  storage1-pri-ip:
+    type: string
+    label: Storage1 Primary IP Address
+
+  storage1-flavour:
+    type: string
+    label: Storage1 node flavour
+
+  storage1-mount-disk-size:
+    type: string
+    label: Storage1 mounted disk size
+
 conditions:
   create_infra01:
     get_param: infra01-create
+  create_infra02:
+    get_param: infra02-create
+  create_storage1:
+    get_param: storage1-create
 resources:
   external-route:
     type: OS::Neutron::Router
@@ -151,6 +183,9 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
           params:
             $key: { get_param: ssh-key }
             $clustername: { get_param: clustername }
@@ -208,6 +243,9 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip
@@ -231,6 +269,145 @@ resources:
     properties:
       volume_id: { get_resource: infra01-vol }
       instance_uuid: { get_resource: infra01-node }
+
+  infra02-pri-port:
+    type: OS::Neutron::Port
+    depends_on: cluster-network-pri
+    condition: create_infra02
+    properties:
+      name: { list_join: ['-', ['infra02', 'pri', { get_param: clustername }]] }
+      network: { get_resource: cluster-network }
+      security_groups:
+        - { get_resource: cluster-sg }
+      fixed_ips:
+        - subnet: { get_resource: cluster-network-pri }
+          ip_address: { get_param: infra02-pri-ip }
+
+  infra02-node:
+    type: OS::Nova::Server
+    depends_on: gateway-node
+    condition: create_infra02
+    properties:
+      name: { list_join: ['.', ['infra02', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: infra02-flavour } 
+      image: { get_param: solo-image }
+      admin_user: flight
+      networks:
+          - port: { get_resource: infra02-pri-port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: infra02.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+
+  infra02-vol:
+    type: OS::Cinder::Volume
+    condition: create_infra02
+    properties:
+      size: 16
+
+  infra02-volattach:
+    type: OS::Cinder::VolumeAttachment
+    condition: create_infra02
+    properties:
+      volume_id: { get_resource: infra02-vol }
+      instance_uuid: { get_resource: infra02-node }
+
+  storage1-pri-port:
+    type: OS::Neutron::Port
+    depends_on: cluster-network-pri
+    condition: create_storage1
+    properties:
+      name: { list_join: ['-', ['storage1', 'pri', { get_param: clustername }]] }
+      network: { get_resource: cluster-network }
+      security_groups:
+        - { get_resource: cluster-sg }
+      fixed_ips:
+        - subnet: { get_resource: cluster-network-pri }
+          ip_address: { get_param: storage1-pri-ip }
+
+  storage1-node:
+    type: OS::Nova::Server
+    depends_on: gateway-node
+    condition: create_storage1
+    properties:
+      name: { list_join: ['.', ['storage1', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: storage1-flavour } 
+      image: { get_param: solo-image }
+      admin_user: flight
+      networks:
+          - port: { get_resource: storage1-pri-port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: storage1.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+
+  storage1-vol:
+    type: OS::Cinder::Volume
+    condition: create_storage1
+    properties:
+      size: 16
+
+  storage1-volattach:
+    type: OS::Cinder::VolumeAttachment
+    condition: create_storage1
+    properties:
+      volume_id: { get_resource: storage1-vol }
+      instance_uuid: { get_resource: storage1-node }
+
+  storage1-vol-mount:
+    type: OS::Cinder::Volume
+    condition: create_storage1
+    properties:
+      size: { get_param: storage1-mount-disk-size }
+
+  storage1-volattach-mount:
+    type: OS::Cinder::VolumeAttachment
+    condition: create_storage1
+    properties:
+      volume_id: { get_resource: storage1-vol-mount }
+      instance_uuid: { get_resource: storage1-node }
 
 outputs:
   gateway_ext_ip:
