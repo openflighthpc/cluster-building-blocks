@@ -17,6 +17,22 @@ parameters:
     type: string
     label: Cluster network security group ID
 
+  solo-image:
+    type: string
+    label: Flight Solo Image ID
+
+  node-flavour:
+    type: string
+    label: Node flavour
+
+  gateway-pri-ip:
+    type: string
+    label: IP of the Gateway Node
+
+  ssh-key:
+    type: string
+    label: SSH Key for Access
+
   count:
     type: number
     label: Number of Nodes
@@ -33,5 +49,9 @@ resources:
           cluster-network: { get_param: cluster-network }
           cluster-network-pri: { get_param: cluster-network-pri }
           cluster-sg: { get_param: cluster-sg }
+          solo-image: { get_param: solo-image }
+          node-flavour: { get_param: node-flavour }
+          gateway-pri-ip: { get_param: gateway-pri-ip }
+          ssh-key: { get_param: ssh-key }
           index: '%index%'
 

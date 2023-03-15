@@ -17,6 +17,22 @@ parameters:
     type: string
     label: Cluster network security group ID
 
+  solo-image:
+    type: string
+    label: Flight Solo Image ID
+
+  node-flavour:
+    type: string
+    label: Node flavour
+
+  gateway-pri-ip:
+    type: string
+    label: IP of the Gateway Node
+
+  ssh-key:
+    type: string
+    label: SSH Key for Access
+
   index:
     type: number
     label: Index for naming
@@ -55,3 +71,50 @@ resources:
       fixed_ips:
         - subnet: { get_param: cluster-network-pri }
           ip_address: { list_join: ['.', [ '10.100.1', { get_attr: [ node-number, value ] } ]] }
+
+  node:
+    type: OS::Nova::Server
+    properties:
+      name: { list_join: ['.', [ { list_join: [ '', ['node', {get_attr: [node-pad, value]} ]]}, { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: node-flavour }
+      image: { get_param: solo-image }
+      admin_user: flight
+      networks:
+          - port: { get_resource: node-pri-port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: node$pad.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+            $pad: { get_attr: [ node-pad, value ] }
+
+  node-vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 16
+
+  node-volattach:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: node-vol }
+      instance_uuid: { get_resource: node }
