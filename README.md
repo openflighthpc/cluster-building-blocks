@@ -1,4 +1,18 @@
 
+## How To
+
+- Set cluster information in `hpc-cores.sh`
+- Launch HPC core
+  ```shell
+  bash create-hpc-core.sh
+  ```
+- Set node information in `compute-nodes.sh`
+- Launch compute nodes
+  ```shell
+  bash create-compute-nodes.sh
+  ```
+
+## Dev/Future Notes
 
 Initial idea:
 - A HPC Core template containing all resources 
@@ -8,7 +22,14 @@ Initial idea:
     - A config file which sets conditions and parameters for node creation
     - A launch script that sources variables for this and the HPC core to launch the nodes
 
-To Do
+To Do:
+- Improve structure and interaction
+    - Separate dirs for scripts, vars, etc
+    - Create copies of the variable scripts named after cluster (if not existing, allows for dropping in configs) 
+    - Add preconfigured variable scripts for different cluster types
+        - Core: Small, Medium, Large
+        - Compute: CPU optimised, Mem optimised
+    - Enforce core existing before creating compute nodes
 - Create DMZ network which is bridged to external and only gateway has access to
     - Make Pri & MGT internal from there
     - Pri network uses Gateway IP for routing to world
