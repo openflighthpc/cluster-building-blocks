@@ -17,11 +17,15 @@ parameters:
     type: string
     label: Cluster network security group ID
 
+  count:
+    type: number
+    label: Number of Nodes
+
 resources:
   node-group:
     type: OS::Heat::ResourceGroup
     properties:
-      count: 03
+      count: { get_param: count }
       resource_def:
         type: compute-node.yaml
         properties:

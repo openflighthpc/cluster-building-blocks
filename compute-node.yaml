@@ -18,17 +18,40 @@ parameters:
     label: Cluster network security group ID
 
   index:
-    type: string
+    type: number
     label: Index for naming
 
 resources:
+  node-number:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        yaql:
+          expression: str(int($.data.index) + int($.data.bump))
+          data:
+            index: { get_param: index }
+            bump: 1
+
+  node-pad:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        yaql:
+          expression: concat(str(int(int($.data.padding) - int(len(str($.data.num)))) * "0"), str($.data.num))
+          data:
+            num: { get_attr: [node-number, value] }
+            padding: 2
+
   node-pri-port:
     type: OS::Neutron::Port
+    depends_on: node-number
     properties:
-      name: { list_join: ['-', ['node', { get_param: index }, 'pri', { get_param: clustername }]] }
+      name: { list_join: ['-', ['node', { get_attr: [ node-pad, value ] }, 'pri', { get_param: clustername }]] }
       network: { get_param: cluster-network }
       security_groups:
         - { get_param: cluster-sg }
       fixed_ips:
         - subnet: { get_param: cluster-network-pri }
-          ip_address: { list_join: ['.', [ '10.100.1', { get_param: index } ]] }
+          ip_address: { list_join: ['.', [ '10.100.1', { get_attr: [ node-number, value ] } ]] }

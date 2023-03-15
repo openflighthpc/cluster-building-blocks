@@ -24,5 +24,6 @@ openstack stack create -t $DIR/compute-nodes.yaml \
     --parameter cluster-network="$network_id" \
     --parameter cluster-network-pri="$network_pri_id" \
     --parameter cluster-sg="$sg_id" \
+    --parameter count="$NODE_COUNT" \
     "$CLUSTERNAME-compute-nodes" --wait
 
