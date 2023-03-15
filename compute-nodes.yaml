@@ -1,0 +1,33 @@
+heat_template_version: 2021-04-16
+parameters: 
+  clustername:
+    type: string
+    label: Cluster Name
+    description: The name to give the cluster
+
+  cluster-network:
+    type: string
+    label: Cluster network resource ID
+
+  cluster-network-pri:
+    type: string
+    label: Cluster network pri ID
+
+  cluster-sg:
+    type: string
+    label: Cluster network security group ID
+
+resources:
+  node-group:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: 03
+      resource_def:
+        type: compute-node.yaml
+        properties:
+          clustername: { get_param: clustername }
+          cluster-network: { get_param: cluster-network }
+          cluster-network-pri: { get_param: cluster-network-pri }
+          cluster-sg: { get_param: cluster-sg }
+          index: '%index%'
+

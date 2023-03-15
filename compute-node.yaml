@@ -1,0 +1,34 @@
+heat_template_version: 2021-04-16
+parameters:
+  clustername:
+    type: string
+    label: Cluster Name
+    description: The name to give the cluster
+
+  cluster-network:
+    type: string
+    label: Cluster network resource ID
+
+  cluster-network-pri:
+    type: string
+    label: Cluster network pri ID
+
+  cluster-sg:
+    type: string
+    label: Cluster network security group ID
+
+  index:
+    type: string
+    label: Index for naming
+
+resources:
+  node-pri-port:
+    type: OS::Neutron::Port
+    properties:
+      name: { list_join: ['-', ['node', { get_param: index }, 'pri', { get_param: clustername }]] }
+      network: { get_param: cluster-network }
+      security_groups:
+        - { get_param: cluster-sg }
+      fixed_ips:
+        - subnet: { get_param: cluster-network-pri }
+          ip_address: { list_join: ['.', [ '10.100.1', { get_param: index } ]] }
