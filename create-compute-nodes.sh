@@ -27,7 +27,7 @@ openstack stack create -t $DIR/compute-nodes.yaml \
     --parameter count="$NODE_COUNT" \
     --parameter solo-image="$SOLO_IMAGE" \
     --parameter node-flavour="$NODE_FLAVOUR" \
-    --parameter gateway-pri-ip="$GATEWAY_PRI_IP" \
+    --parameter gateway-pri-ip="$SERVER_GATEWAY_PRI_IP" \
     --parameter ssh-key="$SSH_KEY" \
     "$CLUSTERNAME-compute-nodes" --wait
 
