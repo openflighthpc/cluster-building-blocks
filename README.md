@@ -1,3 +1,8 @@
+## Requirements
+
+- Existing OpenStack Installation
+- OpenStack RC File (sourced to shell environment where creation scripts will be run from) 
+- [Flight Solo 2023.2+](https://repo.openflighthpc.org/?prefix=images/FlightSolo/) Image in OpenStack
 
 ## How To
 

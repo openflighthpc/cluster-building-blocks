@@ -36,14 +36,6 @@ openstack stack create -t $DIR/hpc-core.yaml \
     "$CLUSTERNAME-hpc-core" --wait
 
 GATEWAY_IP=$(openstack stack show "$CLUSTERNAME-hpc-core" -f yaml |grep gateway_ext_ip -A 1 |tail -1 |sed 's/.*: //g')
-until ssh $GATEWAY_IP exit </dev/null 2>/dev/null ; do
-    sleep 5
-done
-ssh root@$GATEWAY_IP "mkdir -p /root/.ssh && chmod 700 /root/.ssh"
-scp $PRIV_KEY_TO_COPY_TO_GATEWAY root@$GATEWAY_IP:/root/.ssh/id_cluster
-ssh root@$GATEWAY_IP "chmod 600 /root/.ssh/id_cluster && echo -e 'Host *\n  IdentityFile /root/.ssh/id_cluster\n  StrictHostKeyChecking  no' >> /root/.ssh/config"
-
 
 echo "----- Core Deployment Complete -----"
 echo "  Gateway IP: $GATEWAY_IP"
-

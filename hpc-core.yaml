@@ -185,9 +185,17 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
-              - name: root
-                ssh-authorized-keys:
-                  - $key
+            write_files:
+              - content: |
+                  dnf -y install httpd
+                  sed -i 's/^Listen.*/Listen 81/g' /etc/httpd/conf/httpd.conf
+                  cp /root/.ssh/id_alcescluster.pub /var/www/html/
+                  systemctl enable httpd --now
+                  firewall-cmd --add-port 81/tcp --zone public 
+                  firewall-cmd --add-port 81/tcp --zone public --permanent
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
+                permissions: '0644'
+                owner: root:root
           params:
             $key: { get_param: ssh-key }
             $clustername: { get_param: clustername }
@@ -242,13 +250,23 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
-              - name: root
-                ssh-authorized-keys:
-                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip
                 path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
                 permissions: '0644'
                 owner: root:root
           params:
@@ -301,13 +319,23 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
-              - name: root
-                ssh-authorized-keys:
-                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip
                 path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
                 permissions: '0644'
                 owner: root:root
           params:
@@ -360,13 +388,23 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
-              - name: root
-                ssh-authorized-keys:
-                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip
                 path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
                 permissions: '0644'
                 owner: root:root
           params:
