@@ -167,10 +167,12 @@ resources:
     properties:
       name: { list_join: ['.', ['gateway1', { get_param: clustername }, 'alces.network']] }
       flavor: { get_param: gateway-flavour } 
-      image: { get_param: solo-image }
       admin_user: flight
       networks:
           - port: { get_resource: gateway-pri-port } 
+      block_device_mapping_v2:
+        - volume_id: { get_resource: gateway-vol }
+          boot_index: 0
       user_data_format: RAW
       user_data:
         str_replace:
@@ -193,13 +195,8 @@ resources:
   gateway-vol:
     type: OS::Cinder::Volume
     properties:
+      image: { get_param: solo-image }
       size: 16
-
-  gateway-volattach:
-    type: OS::Cinder::VolumeAttachment
-    properties:
-      volume_id: { get_resource: gateway-vol }
-      instance_uuid: { get_resource: gateway-node }
 
   gateway-ip:
      type: "OS::Neutron::FloatingIP"
@@ -227,10 +224,12 @@ resources:
     properties:
       name: { list_join: ['.', ['infra01', { get_param: clustername }, 'alces.network']] }
       flavor: { get_param: infra01-flavour } 
-      image: { get_param: solo-image }
       admin_user: flight
       networks:
           - port: { get_resource: infra01-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: infra01-vol }
+          boot_index: 0
       user_data_format: RAW
       user_data:
         str_replace:
@@ -261,14 +260,8 @@ resources:
     type: OS::Cinder::Volume
     condition: create_infra01
     properties:
+      image: { get_param: solo-image }
       size: 16
-
-  infra01-volattach:
-    type: OS::Cinder::VolumeAttachment
-    condition: create_infra01
-    properties:
-      volume_id: { get_resource: infra01-vol }
-      instance_uuid: { get_resource: infra01-node }
 
   infra02-pri-port:
     type: OS::Neutron::Port
@@ -290,10 +283,12 @@ resources:
     properties:
       name: { list_join: ['.', ['infra02', { get_param: clustername }, 'alces.network']] }
       flavor: { get_param: infra02-flavour } 
-      image: { get_param: solo-image }
       admin_user: flight
       networks:
           - port: { get_resource: infra02-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: infra02-vol }
+          boot_index: 0
       user_data_format: RAW
       user_data:
         str_replace:
@@ -324,14 +319,8 @@ resources:
     type: OS::Cinder::Volume
     condition: create_infra02
     properties:
+      image: { get_param: solo-image }
       size: 16
-
-  infra02-volattach:
-    type: OS::Cinder::VolumeAttachment
-    condition: create_infra02
-    properties:
-      volume_id: { get_resource: infra02-vol }
-      instance_uuid: { get_resource: infra02-node }
 
   storage1-pri-port:
     type: OS::Neutron::Port
@@ -353,10 +342,12 @@ resources:
     properties:
       name: { list_join: ['.', ['storage1', { get_param: clustername }, 'alces.network']] }
       flavor: { get_param: storage1-flavour } 
-      image: { get_param: solo-image }
       admin_user: flight
       networks:
           - port: { get_resource: storage1-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: storage1-vol }
+          boot_index: 0
       user_data_format: RAW
       user_data:
         str_replace:
@@ -387,14 +378,8 @@ resources:
     type: OS::Cinder::Volume
     condition: create_storage1
     properties:
+      image: { get_param: solo-image }
       size: 16
-
-  storage1-volattach:
-    type: OS::Cinder::VolumeAttachment
-    condition: create_storage1
-    properties:
-      volume_id: { get_resource: storage1-vol }
-      instance_uuid: { get_resource: storage1-node }
 
   storage1-vol-mount:
     type: OS::Cinder::Volume
