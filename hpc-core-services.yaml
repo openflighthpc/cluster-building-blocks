@@ -1,0 +1,295 @@
+heat_template_version: 2021-04-16
+parameters:
+  clustername:
+    type: string
+    label: Cluster Name
+    description: The name to give the cluster
+
+  cluster-network:
+    type: string
+    label: Cluster network resource ID
+
+  cluster-network-pri:
+    type: string
+    label: Cluster network pri ID
+
+  cluster-sg:
+    type: string
+    label: Cluster network security group ID
+
+  ssh-key:
+    type: string
+    label: SSH Key for Access
+
+  solo-image:
+    type: string
+    label: Flight Solo Image ID
+
+  infra01-create:
+    type: boolean
+    label: Create Infra01 Node?
+
+  infra01-pri-ip:
+    type: string
+    label: Infra01 Primary IP Address
+
+  infra01-flavour:
+    type: string
+    label: Infra01 node flavour
+
+  infra02-create:
+    type: boolean
+    label: Create Infra02 Node?
+
+  infra02-pri-ip:
+    type: string
+    label: Infra02 Primary IP Address
+
+  infra02-flavour:
+    type: string
+    label: Infra02 node flavour
+
+  storage1-create:
+    type: boolean
+    label: Create Storage1 Node?
+
+  storage1-pri-ip:
+    type: string
+    label: Storage1 Primary IP Address
+
+  storage1-flavour:
+    type: string
+    label: Storage1 node flavour
+
+  storage1-mount-disk-size:
+    type: string
+    label: Storage1 mounted disk size
+
+  gateway-pri-ip:
+    type: string
+    label: IP of the Gateway Node
+
+
+conditions:
+  create_infra01:
+    get_param: infra01-create
+  create_infra02:
+    get_param: infra02-create
+  create_storage1:
+    get_param: storage1-create
+
+resources:
+  infra01-pri-port:
+    type: OS::Neutron::Port
+    condition: create_infra01
+    properties:
+      name: { list_join: ['-', ['infra01', 'pri', { get_param: clustername }]] }
+      network: { get_param: cluster-network }
+      security_groups:
+        - { get_param: cluster-sg }
+      fixed_ips:
+        - subnet: { get_param: cluster-network-pri }
+          ip_address: { get_param: infra01-pri-ip }
+
+  infra01-node:
+    type: OS::Nova::Server
+    condition: create_infra01
+    properties:
+      name: { list_join: ['.', ['infra01', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: infra01-flavour } 
+      admin_user: flight
+      networks:
+          - port: { get_resource: infra01-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: infra01-vol }
+          boot_index: 0
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: infra01.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+
+  infra01-vol:
+    type: OS::Cinder::Volume
+    condition: create_infra01
+    properties:
+      image: { get_param: solo-image }
+      size: 16
+
+  infra02-pri-port:
+    type: OS::Neutron::Port
+    condition: create_infra02
+    properties:
+      name: { list_join: ['-', ['infra02', 'pri', { get_param: clustername }]] }
+      network: { get_param: cluster-network }
+      security_groups:
+        - { get_param: cluster-sg }
+      fixed_ips:
+        - subnet: { get_param: cluster-network-pri }
+          ip_address: { get_param: infra02-pri-ip }
+
+  infra02-node:
+    type: OS::Nova::Server
+    condition: create_infra02
+    properties:
+      name: { list_join: ['.', ['infra02', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: infra02-flavour } 
+      admin_user: flight
+      networks:
+          - port: { get_resource: infra02-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: infra02-vol }
+          boot_index: 0
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: infra02.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+
+  infra02-vol:
+    type: OS::Cinder::Volume
+    condition: create_infra02
+    properties:
+      image: { get_param: solo-image }
+      size: 16
+
+  storage1-pri-port:
+    type: OS::Neutron::Port
+    condition: create_storage1
+    properties:
+      name: { list_join: ['-', ['storage1', 'pri', { get_param: clustername }]] }
+      network: { get_param: cluster-network }
+      security_groups:
+        - { get_param: cluster-sg }
+      fixed_ips:
+        - subnet: { get_param: cluster-network-pri }
+          ip_address: { get_param: storage1-pri-ip }
+
+  storage1-node:
+    type: OS::Nova::Server
+    condition: create_storage1
+    properties:
+      name: { list_join: ['.', ['storage1', { get_param: clustername }, 'alces.network']] }
+      flavor: { get_param: storage1-flavour } 
+      admin_user: flight
+      networks:
+          - port: { get_resource: storage1-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: storage1-vol }
+          boot_index: 0
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: storage1.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+
+  storage1-vol:
+    type: OS::Cinder::Volume
+    condition: create_storage1
+    properties:
+      image: { get_param: solo-image }
+      size: 16
+
+  storage1-vol-mount:
+    type: OS::Cinder::Volume
+    condition: create_storage1
+    properties:
+      size: { get_param: storage1-mount-disk-size }
+
+  storage1-volattach-mount:
+    type: OS::Cinder::VolumeAttachment
+    condition: create_storage1
+    properties:
+      volume_id: { get_resource: storage1-vol-mount }
+      instance_uuid: { get_resource: storage1-node }
+

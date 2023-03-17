@@ -13,7 +13,7 @@ if [ -z "${OS_AUTH_URL}" ] ; then
 fi
 
 # Identify resource IDs
-core_resources="$(openstack stack resource list "$CLUSTERNAME-hpc-core" -f yaml)"
+core_resources="$(openstack stack resource list "$CLUSTERNAME-hpc-core-base" -f yaml)"
 network_id="$(echo "$core_resources" |grep 'cluster-network$' -B 1 |head -1 |sed 's/.*: //g')"
 network_pri_id="$(echo "$core_resources" |grep 'cluster-network-pri$' -B 1 |head -1 |sed 's/.*: //g')"
 sg_id="$(echo "$core_resources" |grep 'cluster-sg$' -B 1 |head -1 |sed 's/.*: //g')"
