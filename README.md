@@ -8,6 +8,7 @@
 ## How To
 
 - Set cluster information in `hpc-cores.sh`
+    - **Ensure that the corresponding private key to `SSH_KEY` is automatically used by your local `ssh` config as the create-hpc-core.sh script needs to login to the gateway node before moving on**
 - Launch HPC core
   ```shell
   bash create-hpc-core.sh
@@ -38,4 +39,3 @@ To Do:
 - Create DMZ network which is bridged to external and only gateway has access to
     - Make Pri & MGT internal from there
     - Pri network uses Gateway IP for routing to world
-- Ensure correct private key for access is avail for SSH command into gateway
