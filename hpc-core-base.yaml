@@ -138,17 +138,6 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
-            write_files:
-              - content: |
-                  dnf -y install httpd
-                  sed -i 's/^Listen.*/Listen 81/g' /etc/httpd/conf/httpd.conf
-                  cp /root/.ssh/id_alcescluster.pub /var/www/html/
-                  systemctl enable httpd --now
-                  firewall-cmd --add-port 81/tcp --zone public 
-                  firewall-cmd --add-port 81/tcp --zone public --permanent
-                path: /var/lib/firstrun/scripts/99_sharekey.bash
-                permissions: '0644'
-                owner: root:root
           params:
             $key: { get_param: ssh-key }
             $clustername: { get_param: clustername }

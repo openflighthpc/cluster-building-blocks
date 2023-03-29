@@ -48,6 +48,8 @@ until ssh -q -o StrictHostKeyChecking=no flight@$GATEWAY_IP exit </dev/null 2>/d
     fi
 done
 
+GATEWAY_PUB_KEY="$(ssh -q -o StrictHostKeyChecking=no flight@$GATEWAY_IP 'cat /root/.ssh/id_alcescluster.pub' 2>/dev/null)"
+
 # Launch services
 core_resources="$(openstack stack resource list "$CLUSTERNAME-hpc-core-base" -f yaml)"
 network_id="$(echo "$core_resources" |grep 'cluster-network$' -B 1 |head -1 |sed 's/.*: //g')"
@@ -56,7 +58,7 @@ sg_id="$(echo "$core_resources" |grep 'cluster-sg$' -B 1 |head -1 |sed 's/.*: //
 
 openstack stack create -t $DIR/hpc-core-services.yaml \
     --parameter clustername="$CLUSTERNAME" \
-    --parameter ssh-key="$SSH_KEY" \
+    --parameter ssh-key="$GATEWAY_PUB_KEY" \
     --parameter solo-image="$SOLO_IMAGE" \
     --parameter cluster-network="$network_id" \
     --parameter cluster-network-pri="$network_pri_id" \
@@ -84,7 +86,7 @@ openstack stack create -t $DIR/compute-nodes.yaml \
     --parameter solo-image="$SOLO_IMAGE" \
     --parameter node-flavour="$NODE_FLAVOUR" \
     --parameter gateway-pri-ip="$SERVER_GATEWAY_PRI_IP" \
-    --parameter ssh-key="$SSH_KEY" \
+    --parameter ssh-key="$GATEWAY_PUB_KEY" \
     "$CLUSTERNAME-compute-nodes" --wait
 
 echo "----- Cluster Deployment Complete -----"
