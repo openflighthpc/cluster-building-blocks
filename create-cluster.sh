@@ -76,6 +76,8 @@ openstack stack create -t $DIR/hpc-core-services.yaml \
     --parameter storage1-mount-disk-size="$SERVER_STORAGE1_MOUNT_DISK_SIZE" \
     "$CLUSTERNAME-hpc-core-services" --wait
 
+echo "----- Compute Deployment Start -----"
+
 # Launch compute
 openstack stack create -t $DIR/compute-nodes.yaml \
     --parameter clustername="$CLUSTERNAME" \
