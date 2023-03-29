@@ -93,6 +93,9 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip

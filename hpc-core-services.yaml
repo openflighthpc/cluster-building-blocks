@@ -115,6 +115,9 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip
@@ -169,6 +172,9 @@ resources:
                 sudo: ALL=(ALL) NOPASSWD:ALL
                 ssh-authorized-keys:
                   - $key
+              - name: root
+                ssh-authorized-keys:
+                  - $key
             write_files:
               - content: |
                   SERVER=$gateway-pri-ip
@@ -221,6 +227,9 @@ resources:
               - default
               - name: flight
                 sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+              - name: root
                 ssh-authorized-keys:
                   - $key
             write_files:
