@@ -36,7 +36,7 @@ countmax=30
 
 echo "$count/$countmax: Waiting for gateway1 to be accessible..."
 count=$((count + 1))
-until ssh $GATEWAY_IP exit </dev/null 2>/dev/null ; do
+until ssh -q -o StrictHostKeyChecking=no flight@$GATEWAY_IP exit </dev/null 2>/dev/null ; do
     echo "$count/$countmax: Waiting for gateway1 to be accessible..."
     sleep 5
     count=$((count + 1))
