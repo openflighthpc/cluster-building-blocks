@@ -48,7 +48,7 @@ until ssh -q -o StrictHostKeyChecking=no flight@$GATEWAY_IP exit </dev/null 2>/d
     fi
 done
 
-GATEWAY_PUB_KEY="$(ssh -q -o StrictHostKeyChecking=no flight@$GATEWAY_IP 'cat /root/.ssh/id_alcescluster.pub' 2>/dev/null)"
+GATEWAY_PUB_KEY="$(ssh -q -o StrictHostKeyChecking=no flight@$GATEWAY_IP 'sudo cat /root/.ssh/id_alcescluster.pub' 2>/dev/null)"
 
 # Launch services
 core_resources="$(openstack stack resource list "$CLUSTERNAME-hpc-core-base" -f yaml)"
