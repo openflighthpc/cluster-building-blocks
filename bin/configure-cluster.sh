@@ -1,14 +1,16 @@
 #!/bin/bash
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 CORE_CONFIG_EXISTS=''
 COMPUTE_CONFIG_EXISTS=''
 
-# Get cluster name
-read -p "Cluster Name: " CLUSTERNAME
-while [[ -z "$CLUSTERNAME" ]] ; do 
-     echo "ERROR: Answer cannot be blank"
-     read -p "Cluster Name: " CLUSTERNAME
-done
+# Check cluster name
+CLUSTERNAME="${CLUSTERNAME:$1}"
+if [ -z $CLUSTERNAME ] ; then
+    echo "Provide cluster name!"
+    exit 1
+fi
 
 CORE_CONFIG="clusters/$CLUSTERNAME-hpc-core.sh"
 COMPUTE_CONFIG="clusters/$CLUSTERNAME-compute-nodes.sh"
