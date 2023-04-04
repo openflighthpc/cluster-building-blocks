@@ -1,0 +1,109 @@
+heat_template_version: 2021-04-16
+parameters:
+  clustername:
+    type: string
+    label: Cluster Name
+    description: The name to give the cluster
+
+  cluster-network:
+    type: string
+    label: Cluster network resource ID
+
+  cluster-network-pri:
+    type: string
+    label: Cluster network pri ID
+
+  cluster-sg:
+    type: string
+    label: Cluster network security group ID
+
+  solo-image:
+    type: string
+    label: Flight Solo Image ID
+
+  node-flavour:
+    type: string
+    label: Node flavour
+
+  gateway-pri-ip:
+    type: string
+    label: IP of the Gateway Node
+
+  ssh-key:
+    type: string
+    label: SSH Key for Access
+
+resources:
+  node-pri-port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: cluster-network }
+      security_groups:
+        - { get_param: cluster-sg }
+      fixed_ips:
+        - subnet: { get_param: cluster-network-pri }
+
+  name:
+    type: OS::Heat::Value
+    depends_on: node-pri-port
+    properties:
+      value:
+        #str_split: ['.', { get_attr: [node-pri-port, fixed_ips, 0, ip_address] }]
+        list_join: ['-', ['node'], {str_split: ['.', { get_attr: [node-pri-port, fixed_ips, 0, ip_address] }]}]
+
+  node:
+    type: OS::Nova::Server
+    properties:
+      name: { get_attr: [name, value] } 
+      flavor: { get_param: node-flavour }
+      image: { get_param: solo-image }
+      admin_user: flight
+      networks:
+          - port: { get_resource: node-pri-port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+            fqdn: $name.$clustername.alces.network
+            users:
+              - default
+              - name: flight
+                sudo: ALL=(ALL) NOPASSWD:ALL
+                ssh-authorized-keys:
+                  - $key
+            write_files:
+              - content: |
+                  SERVER=$gateway-pri-ip
+                path: /opt/flight/cloudinit.in
+                permissions: '0644'
+                owner: root:root
+              - content: |
+                  # Try to obtain key for 5 mins
+                  count=30
+                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
+                      sleep 10
+                      count=$((count - 1))
+                      if [[ $count == 0 ]] ; then
+                          break
+                      fi
+                  done
+                path: /var/lib/firstrun/scripts/99_sharekey.bash
+                permissions: '0644'
+                owner: root:root
+          params:
+            $key: { get_param: ssh-key }
+            $clustername: { get_param: clustername }
+            $gateway-pri-ip: { get_param: gateway-pri-ip }
+            $name: { get_attr: [name, value] }
+
+  node-vol:
+    type: OS::Cinder::Volume
+    properties:
+      size: 16
+
+  node-volattach:
+    type: OS::Cinder::VolumeAttachment
+    properties:
+      volume_id: { get_resource: node-vol }
+      instance_uuid: { get_resource: node }

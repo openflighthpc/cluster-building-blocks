@@ -1,0 +1,59 @@
+heat_template_version: 2021-04-16
+parameters: 
+  clustername:
+    type: string
+    label: Cluster Name
+    description: The name to give the cluster
+
+  cluster-network:
+    type: string
+    label: Cluster network resource ID
+
+  cluster-network-pri:
+    type: string
+    label: Cluster network pri ID
+
+  cluster-sg:
+    type: string
+    label: Cluster network security group ID
+
+  solo-image:
+    type: string
+    label: Flight Solo Image ID
+
+  node-flavour:
+    type: string
+    label: Node flavour
+
+  gateway-pri-ip:
+    type: string
+    label: IP of the Gateway Node
+
+  ssh-key:
+    type: string
+    label: SSH Key for Access
+
+  count:
+    type: number
+    label: Number of Nodes
+
+resources:
+  autoscale-node-group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      cooldown: 30
+      min_size: 1
+      max_size: 4
+      desired_capacity: 4
+      resource:
+        type: autoscale-compute-node.yaml
+        properties:
+          clustername: { get_param: clustername }
+          cluster-network: { get_param: cluster-network }
+          cluster-network-pri: { get_param: cluster-network-pri }
+          cluster-sg: { get_param: cluster-sg }
+          solo-image: { get_param: solo-image }
+          node-flavour: { get_param: node-flavour }
+          gateway-pri-ip: { get_param: gateway-pri-ip }
+          ssh-key: { get_param: ssh-key }
+
