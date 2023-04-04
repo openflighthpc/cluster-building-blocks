@@ -37,14 +37,19 @@ parameters:
     type: number
     label: Number of Nodes
 
+  up:
+    type: number
+    label: Number of Nodes to Have Up
+    default: 1
+
 resources:
   autoscale-node-group:
     type: OS::Heat::AutoScalingGroup
     properties:
       cooldown: 30
       min_size: 1
-      max_size: 4
-      desired_capacity: 4
+      max_size: { get_param: count }
+      desired_capacity: { get_param: up }
       resource:
         type: autoscale-compute-node.yaml
         properties:

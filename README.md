@@ -14,12 +14,26 @@
   bash create-hpc-core.sh
   ```
 - Set node information in `compute-nodes.sh`
-- Launch compute nodes
-  ```shell
-  bash create-compute-nodes.sh
-  ```
+- Launch either a set number of nodes or a scaling group that varies between 1 and the set `NODE_COUNT`
+    - A) Launch set number of compute nodes
+      ```shell
+      bash create-compute-nodes.sh
+      ```
+    - B) Launch autoscaling group of compute nodes
+      ```shell
+      bash create-autoscale-compute-nodes.sh
+      ```
 
 Note: All scripts are created such that they can be run independently.
+
+## Autoscaling
+
+To change the number of nodes currently up in the autoscaling group, run:
+```shell
+bash modify-autoscale-compute-nodes.sh X
+```
+
+Where X is the desired number of nodes. OpenStack will then create/delete instances to reach this target. 
 
 ## Dev/Future Notes
 
