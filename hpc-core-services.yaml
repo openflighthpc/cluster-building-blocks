@@ -121,19 +121,6 @@ resources:
                 path: /opt/flight/cloudinit.in
                 permissions: '0644'
                 owner: root:root
-              - content: |
-                  # Try to obtain key for 5 mins
-                  count=30
-                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
-                      sleep 10
-                      count=$((count - 1))
-                      if [[ $count == 0 ]] ; then
-                          break
-                      fi
-                  done
-                path: /var/lib/firstrun/scripts/99_sharekey.bash
-                permissions: '0644'
-                owner: root:root
           params:
             $key: { get_param: ssh-key }
             $clustername: { get_param: clustername }
@@ -188,19 +175,6 @@ resources:
                 path: /opt/flight/cloudinit.in
                 permissions: '0644'
                 owner: root:root
-              - content: |
-                  # Try to obtain key for 5 mins
-                  count=30
-                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
-                      sleep 10
-                      count=$((count - 1))
-                      if [[ $count == 0 ]] ; then
-                          break
-                      fi
-                  done
-                path: /var/lib/firstrun/scripts/99_sharekey.bash
-                permissions: '0644'
-                owner: root:root
           params:
             $key: { get_param: ssh-key }
             $clustername: { get_param: clustername }
@@ -253,19 +227,6 @@ resources:
               - content: |
                   SERVER=$gateway-pri-ip
                 path: /opt/flight/cloudinit.in
-                permissions: '0644'
-                owner: root:root
-              - content: |
-                  # Try to obtain key for 5 mins
-                  count=30
-                  until curl http://$gateway-pri-ip:81/id_alcescluster.pub >> /root/.ssh/authorized_keys ; do
-                      sleep 10
-                      count=$((count - 1))
-                      if [[ $count == 0 ]] ; then
-                          break
-                      fi
-                  done
-                path: /var/lib/firstrun/scripts/99_sharekey.bash
                 permissions: '0644'
                 owner: root:root
           params:
