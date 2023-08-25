@@ -77,10 +77,12 @@ resources:
     properties:
       name: { list_join: ['.', [ { list_join: [ '', ['node', {get_attr: [node-pad, value]} ]]}, { get_param: clustername }, 'alces.network']] }
       flavor: { get_param: node-flavour }
-      image: { get_param: solo-image }
       admin_user: flight
       networks:
           - port: { get_resource: node-pri-port }
+      block_device_mapping_v2:
+        - volume_id: { get_resource: node-vol }
+          boot_index: 0
       user_data_format: RAW
       user_data:
         str_replace:
@@ -108,10 +110,6 @@ resources:
   node-vol:
     type: OS::Cinder::Volume
     properties:
+      image: { get_param: solo-image }
       size: 16
 
-  node-volattach:
-    type: OS::Cinder::VolumeAttachment
-    properties:
-      volume_id: { get_resource: node-vol }
-      instance_uuid: { get_resource: node }
