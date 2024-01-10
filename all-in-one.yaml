@@ -142,6 +142,7 @@ resources:
               - content: |
                   SHAREPUBKEY=true
                   AUTOPARSEMATCH=$clustername
+                  AUTOREMOVE=true
                 path: /opt/flight/cloudinit.in
                 permissions: '0644'
                 owner: root:root
