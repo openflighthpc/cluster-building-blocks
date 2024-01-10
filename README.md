@@ -35,6 +35,20 @@ bash modify-autoscale-compute-nodes.sh X
 
 Where X is the desired number of nodes. OpenStack will then create/delete instances to reach this target. 
 
+## Quick Launch - Gateway & Compute
+
+For those wishing to quickly launch resources, the `create-all-in-one.sh` and `all-in-one.yaml` files exist to approach this. 
+
+To launch:
+- Set "General Cluster", "Network Config" and "Gateway" vars in `hpc-core.sh`
+- Set variables in `compute-nodes.sh`
+- Launch the cluster
+    ```bash
+    bash create-all-in-one.sh
+    ```
+
+After this there will be a gateway and X compute nodes launched with hunter auto-parsing all of the nodes. 
+
 ## Dev/Future Notes
 
 Initial idea:
