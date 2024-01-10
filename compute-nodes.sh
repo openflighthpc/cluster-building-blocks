@@ -1,2 +1,0 @@
-NODE_COUNT=2
-NODE_FLAVOUR="m1.medium"
