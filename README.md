@@ -7,13 +7,13 @@
 
 ## How To
 
-- Set cluster information in `hpc-cores.sh`
+- Set cluster information in `hpc-cores.sh` (copy `hpc-core.sh.example` to `hpc-core.sh` if it doesn't exist for a jumping off point)
     - **Ensure that the corresponding private key to `SSH_KEY` is automatically used by your local `ssh` config as the create-hpc-core.sh script needs to login to the gateway node before moving on**
 - Launch HPC core
   ```shell
   bash create-hpc-core.sh
   ```
-- Set node information in `compute-nodes.sh`
+- Set node information in `compute-nodes.sh` (copy `compute-nodes.sh.example` to `compute-nodes.sh` if it doesn't exist for a jumping off point)
 - Launch either a set number of nodes or a scaling group that varies between 1 and the set `NODE_COUNT`
     - A) Launch set number of compute nodes
       ```shell
